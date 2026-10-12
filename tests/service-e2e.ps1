@@ -10,7 +10,10 @@
 #>
 param([Parameter(Mandatory)] [string]$Exe)
 
-$ErrorActionPreference = 'Stop'
+# 'Continue': under 'Stop', Windows PowerShell 5.1 turns a native program's
+# redirected stderr into a terminating error. Cmdlets that must stop use
+# -ErrorAction Stop explicitly; checks catch their own errors.
+$ErrorActionPreference = 'Continue'
 $Exe = (Resolve-Path $Exe).Path
 $failures = 0
 $inCI = $env:GITHUB_ACTIONS -eq 'true'
@@ -21,6 +24,11 @@ function Annotate($title, $text) {
     if ($msg.Length -gt 6000) { $msg = $msg.Substring($msg.Length - 6000) }
     Write-Host "::error title=$title::$msg"
 }
+trap {
+    Annotate 'service-e2e crashed' "$($_.Exception.Message)`n$($_.InvocationInfo.PositionMessage)`n$($_.ScriptStackTrace)"
+    exit 1
+}
+if ($inCI) { Write-Host "::notice title=service-e2e::started as $([Security.Principal.WindowsIdentity]::GetCurrent().Name), PowerShell $($PSVersionTable.PSVersion)" }
 function Diagnostics {
     $parts = @()
     $parts += "service: " + ((Get-Service ab-win -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Status) $($_.StartType)" }) -join '')
