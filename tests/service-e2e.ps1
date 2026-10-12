@@ -22,7 +22,9 @@ function Annotate($title, $text) {
     if (-not $inCI) { return }
     $msg = ($text -replace '%', '%25') -replace "`r?`n", '%0A'
     if ($msg.Length -gt 6000) { $msg = $msg.Substring($msg.Length - 6000) }
-    Write-Host "::error title=$title::$msg"
+    # Property values must also escape ':' and ',' or the command is dropped.
+    $t = (($title -replace '%', '%25') -replace ':', '%3A') -replace ',', '%2C'
+    Write-Host "::error title=$t::$msg"
 }
 trap {
     Annotate 'service-e2e crashed' "$($_.Exception.Message)`n$($_.InvocationInfo.PositionMessage)`n$($_.ScriptStackTrace)"
@@ -140,3 +142,7 @@ if ($failures -gt 0) {
     exit 1
 }
 Write-Host 'All service checks passed' -ForegroundColor Green
+if ($inCI) { Write-Host '::notice title=service-e2e::all service checks passed' }
+# Explicit: GitHub's wrapper exits with $LASTEXITCODE, which is 1 here because
+# the last check expects `schtasks /Query` to fail.
+exit 0
