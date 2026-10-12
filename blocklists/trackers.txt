@@ -1,0 +1,138 @@
+# adblock-win built-in seed list: TRACKERS & ANALYTICS
+# One domain per line. Each entry also blocks all its subdomains.
+# Blocking analytics may break the vendor's own dashboard for people who use it. They can allow it from the tray.
+#
+# Intentionally NOT included (they break checkout, banking, login or links in emails):
+#   - fraud-prevention fingerprinting (ThreatMetrix/online-metrix.net, iovation/iesnare.com)
+#   - deep-link routers (branch.io / app.link)
+#   - web push providers (onesignal.com)
+#   - marketing-form hosts (hs-scripts.com, pardot.com, marketo.net)
+
+# --- Google ---
+google-analytics.com
+googletagmanager.com
+app-measurement.com
+firebaselogging-pa.googleapis.com
+crashlytics.com
+
+# --- Microsoft ---
+clarity.ms
+c.bing.com
+c.msn.com
+
+# --- Social pixels ---
+connect.facebook.net
+analytics.twitter.com
+static.ads-twitter.com
+px.ads.linkedin.com
+snap.licdn.com
+ct.pinterest.com
+tr.snapchat.com
+analytics.tiktok.com
+
+# --- Session replay / heatmaps ---
+hotjar.com
+hotjar.io
+mouseflow.com
+fullstory.com
+crazyegg.com
+luckyorange.com
+luckyorange.net
+inspectlet.com
+smartlook.com
+lr-ingest.io
+quantummetric.com
+contentsquare.net
+clicktale.net
+decibelinsight.net
+sessioncam.com
+
+# --- Product analytics / CDPs ---
+heapanalytics.com
+mixpanel.com
+mxpnl.com
+amplitude.com
+segment.io
+cdn.segment.com
+kissmetrics.com
+kissmetrics.io
+woopra.com
+chartbeat.com
+chartbeat.net
+parsely.com
+nr-data.net
+js-agent.newrelic.com
+statcounter.com
+histats.com
+getclicky.com
+mparticle.com
+
+# --- Audience measurement ---
+scorecardresearch.com
+comscore.com
+imrworldwide.com
+2o7.net
+omtrdc.net
+tealiumiq.com
+tiqcdn.com
+ensighten.com
+gemius.pl
+hit.gemius.pl
+mc.yandex.ru
+mc.yandex.com
+counter.yadro.ru
+tns-counter.ru
+top100.ru
+openstat.net
+cnzz.com
+umeng.com
+hm.baidu.com
+admaster.com.cn
+
+# --- Mobile attribution ---
+appsflyer.com
+appsflyersdk.com
+adjust.com
+adjust.io
+kochava.com
+singular.net
+
+# --- A/B testing & conversion overlays ---
+visualwebsiteoptimizer.com
+abtasty.com
+kameleoon.eu
+dynamicyield.com
+bounceexchange.com
+wunderkind.co
+yieldify.com
+
+# --- Fingerprinting / identity graphs / data brokers ---
+fpjs.io
+fpcdn.io
+id5-sync.com
+pippio.com
+liadm.com
+liveintent.com
+zeotap.com
+permutive.com
+permutive.app
+intentiq.com
+uidapi.com
+
+# --- CNAME-cloaking tracker targets (blocked via CNAME un-cloaking) ---
+eulerian.net
+at-o.net
+keyade.com
+wizaly.com
+dnsdelegation.io
+storetail.io
+tagcommander.com
+commander1.com
+tracedock.com
+webtrekk.net
+wt-eu02.net
+mookie1.com
+a8.net
+actonservice.com
+en25.com
+hs-analytics.net

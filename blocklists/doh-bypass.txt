@@ -1,0 +1,41 @@
+# adblock-win built-in seed list: PUBLIC DNS-over-HTTPS ENDPOINTS (category OFF by default)
+# Blocking these stops apps and browsers from bypassing the local filter with their own DoH.
+# It also breaks legitimate privacy tools, so it is opt-in.
+#
+# NOTE: the service's OWN upstream DoH connections are bootstrapped by IP and never go through
+# the policy engine, so enabling this list does not break adblock-win itself.
+
+dns.google
+dns.google.com
+dns64.dns.google
+cloudflare-dns.com
+mozilla.cloudflare-dns.com
+chrome.cloudflare-dns.com
+1dot1dot1dot1.cloudflare-dns.com
+one.one.one.one
+family.cloudflare-dns.com
+security.cloudflare-dns.com
+dns.quad9.net
+dns9.quad9.net
+dns10.quad9.net
+dns11.quad9.net
+doh.opendns.com
+doh.familyshield.opendns.com
+dns.nextdns.io
+dns.adguard.com
+dns.adguard-dns.com
+unfiltered.adguard-dns.com
+family.adguard-dns.com
+doh.cleanbrowsing.org
+dns.mullvad.net
+doh.mullvad.net
+adblock.dns.mullvad.net
+dns.controld.com
+freedns.controld.com
+doh.dns.sb
+dns.alidns.com
+doh.pub
+doh.libredns.gr
+dns.twnic.tw
+dns.switch.ch
+doh.ffmuc.net

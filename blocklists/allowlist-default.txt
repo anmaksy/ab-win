@@ -1,0 +1,66 @@
+# adblock-win built-in ALLOWLIST: never blocked, whatever any upstream list says.
+# One domain per line. Each entry also allows all its subdomains, unless prefixed with "=" (exact match).
+# The list updater REJECTS an upstream update that contains any of the "=" sentinels below (poisoned or broken list guard).
+
+# --- Windows connectivity check (NCSI); blocking shows "No internet" in the taskbar ---
+msftconnecttest.com
+msftncsi.com
+
+# --- Windows Update / Store / activation ---
+windowsupdate.com
+update.microsoft.com
+download.windowsupdate.com
+delivery.mp.microsoft.com
+dl.delivery.mp.microsoft.com
+tlu.dl.delivery.mp.microsoft.com
+displaycatalog.mp.microsoft.com
+licensing.mp.microsoft.com
+activation.sls.microsoft.com
+validation.sls.microsoft.com
+go.microsoft.com
+
+# --- Defender / SmartScreen (security must keep working) ---
+wdcp.microsoft.com
+wdcpalt.microsoft.com
+smartscreen-prod.microsoft.com
+definitionupdates.microsoft.com
+
+# --- Certificate revocation (OCSP / CRL); blocking slows or breaks HTTPS ---
+ocsp.digicert.com
+crl3.digicert.com
+crl4.digicert.com
+ocsp.pki.goog
+crl.pki.goog
+o.lencr.org
+x1.c.lencr.org
+ocsp.sectigo.com
+crl.sectigo.com
+ocsp.usertrust.com
+ocsp.globalsign.com
+crl.globalsign.com
+ocsp.entrust.net
+crl.microsoft.com
+ocsp.msocsp.com
+oneocsp.microsoft.com
+
+# --- Sign-in / SSO ---
+login.microsoftonline.com
+login.live.com
+login.microsoft.com
+accounts.google.com
+appleid.apple.com
+github.com
+
+# --- Critical sentinels (also used by the poisoned-list guard) ---
+# "=" prefix = EXACT match only. Without it, allowing google.com would also allow
+# adservice.google.com, and microsoft.com would allow telemetry.microsoft.com.
+=google.com
+=www.google.com
+=microsoft.com
+=www.microsoft.com
+=apple.com
+=cloudflare.com
+=amazon.com
+=www.amazon.com
+=wikipedia.org
+=en.wikipedia.org

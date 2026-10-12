@@ -1,0 +1,29 @@
+# adblock-win built-in seed list: WINDOWS / MICROSOFT TELEMETRY (category OFF by default)
+# One domain per line. Each entry also blocks all its subdomains.
+# WARNING: may break Windows Update, Microsoft Store, Defender cloud protection, Office activation
+# or Xbox features. Upstream extended list: crazy-max/WindowsSpyBlocker (data/hosts/spy.txt).
+
+vortex.data.microsoft.com
+vortex-win.data.microsoft.com
+v10.events.data.microsoft.com
+v20.events.data.microsoft.com
+self.events.data.microsoft.com
+mobile.events.data.microsoft.com
+umwatson.events.data.microsoft.com
+browser.events.data.msn.com
+settings-win.data.microsoft.com
+telemetry.microsoft.com
+watson.telemetry.microsoft.com
+oca.telemetry.microsoft.com
+sqm.telemetry.microsoft.com
+telecommand.telemetry.microsoft.com
+watson.microsoft.com
+watson.events.data.microsoft.com
+diagnostics.support.microsoft.com
+feedback.windows.com
+feedback.search.microsoft.com
+telemetry.appex.bing.net
+telemetry.urs.microsoft.com
+df.telemetry.microsoft.com
+reports.wes.df.telemetry.microsoft.com
+services.wes.df.telemetry.microsoft.com
