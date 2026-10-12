@@ -13,11 +13,34 @@ param([Parameter(Mandatory)] [string]$Exe)
 $ErrorActionPreference = 'Stop'
 $Exe = (Resolve-Path $Exe).Path
 $failures = 0
+$inCI = $env:GITHUB_ACTIONS -eq 'true'
+# GitHub annotations are visible publicly, unlike job logs; encode newlines.
+function Annotate($title, $text) {
+    if (-not $inCI) { return }
+    $msg = ($text -replace '%', '%25') -replace "`r?`n", '%0A'
+    if ($msg.Length -gt 6000) { $msg = $msg.Substring($msg.Length - 6000) }
+    Write-Host "::error title=$title::$msg"
+}
+function Diagnostics {
+    $parts = @()
+    $parts += "service: " + ((Get-Service ab-win -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Status) $($_.StartType)" }) -join '')
+    $parts += "DNS: " + ((DnsSnapshot) -join '; ')
+    $log = Join-Path $env:ProgramData 'ab-win/logs/ab-win.log'
+    if (Test-Path $log) { $parts += "log tail:"; $parts += Get-Content $log -Tail 25 }
+    $ev = Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='ab-win'} -MaxEvents 3 -ErrorAction SilentlyContinue
+    if ($ev) { $parts += "events:"; $parts += $ev | ForEach-Object { $_.Message } }
+    $parts -join "`n"
+}
 function Check($name, [scriptblock]$cond) {
     $ok = $false
-    try { $ok = [bool](& $cond) } catch { $ok = $false }
-    if ($ok) { Write-Host "PASS  $name" -ForegroundColor Green }
-    else { Write-Host "FAIL  $name" -ForegroundColor Red; $script:failures++ }
+    $err = ''
+    try { $ok = [bool](& $cond) } catch { $ok = $false; $err = $_.Exception.Message }
+    if ($ok) { Write-Host "PASS  $name" -ForegroundColor Green; return }
+    Write-Host "FAIL  $name $err" -ForegroundColor Red
+    $script:failures++
+    # Annotations are capped per step: diagnostics with the first failure, then names only.
+    if ($script:failures -eq 1) { Annotate "FAIL: $name" "$err`n$(Diagnostics)" }
+    elseif ($script:failures -le 8) { Annotate "FAIL: $name" $err }
 }
 function WaitFor([scriptblock]$cond, $seconds = 30) {
     $deadline = (Get-Date).AddSeconds($seconds)
@@ -40,8 +63,11 @@ $before = DnsSnapshot
 Write-Host "DNS before:`n$($before -join "`n")"
 
 # --- install ---------------------------------------------------------------
-& $Exe install --quiet
-Check 'install exits 0' { $LASTEXITCODE -eq 0 }
+$installOut = & $Exe install --quiet 2>&1 | Out-String
+$installCode = $LASTEXITCODE
+Write-Host $installOut
+if ($installCode -ne 0) { Annotate 'install output' $installOut }
+Check 'install exits 0' { $installCode -eq 0 }
 Check 'service running' { (Get-Service ab-win).Status -eq 'Running' }
 Check 'service start type automatic' { (Get-Service ab-win).StartType -eq 'Automatic' }
 Check 'watchdog task exists' { schtasks /Query /TN 'ab-win watchdog' | Out-Null; $LASTEXITCODE -eq 0 }
