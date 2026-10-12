@@ -35,8 +35,11 @@ function Diagnostics {
     $parts += "DNS: " + ((DnsSnapshot) -join '; ')
     $log = Join-Path $env:ProgramData 'ab-win/logs/ab-win.log'
     if (Test-Path $log) { $parts += "log tail:"; $parts += Get-Content $log -Tail 25 }
-    $ev = Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='ab-win'} -MaxEvents 3 -ErrorAction SilentlyContinue
-    if ($ev) { $parts += "events:"; $parts += $ev | ForEach-Object { $_.Message } }
+    # Throws (not just errors) when the ab-win event source isn't registered.
+    try {
+        $ev = Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='ab-win'} -MaxEvents 3 -ErrorAction Stop
+        $parts += "events:"; $parts += $ev | ForEach-Object { $_.Message }
+    } catch {}
     $parts -join "`n"
 }
 function Check($name, [scriptblock]$cond) {

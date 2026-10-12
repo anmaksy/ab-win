@@ -274,13 +274,24 @@ func Uninstall(o UninstallOptions) error {
 	// The running exe can't delete itself; a short-lived cmd does it after we exit.
 	self, _ := os.Executable()
 	if samePath(filepath.Dir(self), paths.InstallDir()) {
-		cmd := exec.Command("cmd", "/c", "ping -n 3 127.0.0.1 >nul & rmdir /s /q "+syscall.EscapeArg(paths.InstallDir()))
-		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: windows.DETACHED_PROCESS}
-		cmd.Start()
+		delayedRemoveDir(paths.InstallDir(), 2)
 	} else {
 		os.RemoveAll(paths.InstallDir())
 	}
 	return errors.Join(errs...)
+}
+
+// delayedRemoveDir deletes dir after a few seconds from a detached cmd.exe.
+// The command line is passed raw: Go's argument escaping (\") is not
+// understood by cmd.exe and would mangle a path with spaces.
+func delayedRemoveDir(dir string, seconds int) error {
+	cmd := exec.Command("cmd.exe")
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CmdLine:       fmt.Sprintf(`cmd.exe /d /c "ping -n %d 127.0.0.1 >nul & rmdir /s /q "%s""`, seconds+1, dir),
+		HideWindow:    true,
+		CreationFlags: windows.DETACHED_PROCESS,
+	}
+	return cmd.Start()
 }
 
 func samePath(a, b string) bool {
