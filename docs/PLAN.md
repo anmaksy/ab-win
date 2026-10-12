@@ -1,6 +1,6 @@
 # ab-win — Plan
 
-**Status:** M1–M6 implemented (see section 13). M0 hardware spike and M7 beta still to do.
+**Status:** M1–M6 implemented; CI green including the service end-to-end test (see section 13). M0 hardware spike and M7 beta still to do.
 **Date:** 2026-10-12
 **Goal:** A Windows background service that blocks ads, trackers and malware/phishing domains for the whole OS, so it works in every browser (Chrome, Edge, Firefox, Brave, Opera, Vivaldi…) and in every other app, with a tiny CLI and a tray icon to turn it on and off.
 
@@ -344,7 +344,7 @@ Strength presets: **Balanced** (default: HaGeZi Pro + TIF), **Relaxed** (HaGeZi 
 |---|---|---|
 | M0 | ⚠️ Decided on paper, spike not run | Adapter DNS (option 1) via `SetInterfaceDnsSettings`, with `netsh` as fallback, `NotifyIpInterfaceChange` plus a 60 s re-check. Adapters without a gateway (Hyper-V default switch, WSL) and VPN adapters are left alone. NRPT isn't implemented. Still to do: validate on Win10 22H2 and Win11 24H2/25H2 hardware with VPNs. |
 | M1 | ✅ | Resolver, policy, compiler, DoH upstream chain, cache. Unit, integration and fuzz tests pass. Measured with the real Balanced preset (2.1M domains): 0.28 µs per lookup, 46–57 MB RSS, cached and blocked answers < 1 ms p99, `lists.bin` loads at startup without network. |
-| M2 | ✅ code, ⚠️ service tests need admin | Service, install/uninstall, named-pipe IPC (two pipes, so `lock_settings` is enforced by the pipe ACL), every CLI command, watchdog failsafe. `tests/service-e2e.ps1` covers install → block → pause → crash recovery → watchdog → uninstall-restores-DNS. CI runs it on `windows-latest`; it hasn't been run on a developer machine yet (needs admin). |
+| M2 | ✅ | Service, install/uninstall, named-pipe IPC (two pipes, so `lock_settings` is enforced by the pipe ACL), every CLI command, watchdog failsafe. `tests/service-e2e.ps1` covers install → block → pause → allow → crash recovery → watchdog → reinstall → uninstall-restores-DNS. It passes in CI on `windows-latest` (first green run 2026-10-13). The only product bug it found was uninstall leaving `C:\Program Files\ab-win` behind (fixed, with a regression test). Still to do: run it on Win10 22H2 and Win11 desktop VMs (that's the M0 spike). |
 | M3 | ✅ | Updater with ETag, the 50 % / 300 % / sentinel / 50 MB guards, last-known-good, categories, presets. Every upstream URL was verified (all 11 return 200 and parse). Weekly `list-health` workflow. |
 | M4 | ✅ | Tray: four icon states (shape plus colour), pause menu, Recently blocked → Allow, install/repair, update available. |
 | M5 | ✅ partly | CNAME un-cloaking, `doctor`, `harden-browsers` (with undo), Firefox canary, DoH-blocked or captive networks fall back to the network's DNS, VPN detection. Not built: an explicit captive-portal detector (the fallback chain covers it) and the Playwright browser/breakage suites (section 8.1). |
