@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Vet
+        run: go vet ./...
+      - name: Unit and integration tests
+        run: go test ./...
+      - name: Fuzz parsers and DNS handling (short)
+        run: |
+          go test ./internal/lists -run '^$' -fuzz FuzzParseLine -fuzztime 30s
+          go test ./internal/dnsserver -run '^$' -fuzz FuzzServeDNS -fuzztime 30s
+      - name: Benchmark lookups (1.5M domains)
+        run: go test ./internal/policy -run '^$' -bench . -benchmem
+      - name: Build amd64 and arm64
+        run: |
+          go build -trimpath -o bin/ab-win.exe ./cmd/ab-win
+          $env:GOARCH = 'arm64'; go build -trimpath -o bin/ab-win-arm64.exe ./cmd/ab-win
+      - name: Service end-to-end (install, block, pause, crash, watchdog, uninstall)
+        shell: powershell
+        run: .\tests\service-e2e.ps1 -Exe .\bin\ab-win.exe

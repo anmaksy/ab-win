@@ -7,7 +7,7 @@ Nobody can maintain "all ad servers" by hand. There are hundreds of thousands, a
 1. **Upstream curated lists** are downloaded and compiled at runtime and refreshed every 24 h. This is where the real coverage comes from: about 300k–1.5M domains, depending on the preset.
 2. **Built-in seed lists** in [`../blocklists/`](../blocklists/) ship inside the binary. They give immediate protection on first run, offline, before any download. They cover the largest, most stable ad/tracker networks I could identify, plus cryptojacking and telemetry categories. Seed lists deliberately contain **no** live malware/phishing domains: those go stale within days and must come from the threat feeds below.
 
-> ⚠️ Verify every URL during M3. The list-health CI job (PLAN section 8.1) does this continuously. Paths for a few lists (marked *verify*) were collected from mirrors, forums and secondary sources and could not be confirmed against the primary README during this research.
+> ✅ **Verified 2026-10-12 (M3).** Every URL marked *verify* below returned HTTP 200 and parsed. For OISD, `domainswild2` and `domainswild` both work, and ab-win uses `domainswild2`. Entry counts on that date: HaGeZi Light 55,914, Pro 193,076, Pro++ 206,596, TIF 1,907,239, TIF Medium 616,912, DoH 3,268, Windows/Office 383, OISD Big 237,859, AdGuard CNAME 240,632, Frogeye 1P 14,649, URLhaus 418. None contained a sentinel domain. The weekly `list-health` workflow re-checks this. The *verify* marks below are kept so this research can be traced.
 
 ---
 

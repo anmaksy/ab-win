@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-12
 **Scope:** The CLI and tray design in [PLAN.md](PLAN.md), sections 4–6.
-**Honesty note:** This is a **design-stage** review, done before any code exists. It used a cognitive walkthrough, a heuristic evaluation and a predicted SUS score. It is not a study with real users. The review is repeated on the built app at M4 and M6.
+**Honesty note:** Sections 1–5 are the **design-stage** review, done before any code existed. Section 6 repeats it on the built app (M4/M6). Both are Claude's own review passes (walkthroughs and heuristics), not studies with real users.
 
 ---
 
@@ -63,3 +63,37 @@ A design-stage estimate for each persona, using the 10 SUS statements with the f
 | P1 | ~80 (Good–Excellent) | First-run trust: SmartScreen warning if unsigned, so code signing matters |
 | P2 | ~85 | Conflicts with dev tools and VPN; `doctor` quality |
 | P3 | ~75 | Lock mode needs admin-account literacy |
+
+## 6. Built-app review (2026-10-12)
+
+The same walkthrough, re-run against the real binary. The CLI was exercised against a live resolver (`ab-win run`). The tray was smoke-tested and its icons rendered and inspected. The install and uninstall flows were traced through the code, because running them needs admin: they're covered by `tests/service-e2e.ps1` in CI.
+
+| # | Task | What the built app does | Verdict |
+|---|---|---|---|
+| T1 | Install | Double-click → "Install ab-win?" dialog → UAC → hidden elevated install → tray starts → "Done — protection is on" dialog. The console window is hidden right away. | ✅ Two clicks plus UAC. Remaining friction: SmartScreen (unsigned) and a generic exe icon. |
+| T2 | Is it working? | The shield's shape and colour, a tooltip, and "Blocked today: N" in the menu. `ab-win status` prints one line first: `✔ Protected — 4 blocked today (14 lookups)`. | ✅ |
+| T3 | Fix a broken site | Tray → Recently blocked → "Allow cdn.example.com" → confirmation ("Reload the page"). CLI: `why` prints the exact `allow` command to run, and `allow` accepts a pasted URL. | ✅ 2 clicks |
+| T4 | Turn off briefly | Tray → Pause → 5 min / 1 h / until restart. The header shows "Paused until 14:35". `off` prints the pause tip once. | ✅ |
+| T5 | Off can't break internet | Off and pause only switch the policy; adapters are untouched. Verified: toggling never changes DNS. | ✅ |
+| T6 | Uninstall | "Installed apps" entry → elevated uninstall → dialog "your original DNS settings are back". | ✅ (end-to-end in CI) |
+| T7 | Not blocking in Firefox | `doctor` reads Firefox `prefs.js` and Chromium `Local State` for hand-enabled DoH and points to `harden-browsers`. | ✅ |
+| T8 | Port conflict | Install and `doctor` name the process and service holding port 53, with a specific fix for ICS, Docker, AdGuard, dnscrypt, Acrylic and Technitium. Verified with a second instance: "port 53 is already used by ab-win.exe, PID …". | ✅ |
+| T9 | Lock for a kid | **Gap found:** the only way in was hand-editing `config.toml` and running `reload`. **Fixed:** added `ab-win lock on\|off`, which self-elevates. Locked trays show "(managed by administrator)" and disable the toggles. | ✅ after fix |
+| T10 | Scripting | `--json` on read commands (`recent --json` emits JSON lines), stable exit codes 0/1/2/3, verified. | ✅ |
+
+Issues found and fixed in this pass:
+
+- Plain-text (non-TTY) output labelled every blocked query "Problem:". It now says `BLOCKED` / `ALLOWED`.
+- The seed list showed up in `why` as "built-in Ads (includes most trackers) list". It's now "built-in ads list".
+- When ab-win wasn't installed, `doctor` flagged each adapter as a failure and told the user to restart a service that doesn't exist. Adapters are now listed as info in that state.
+- Memory: the first build used 304 MB after a list update, against an 80 MB target. Compilation now keys on hashes and runs two streaming passes, and it returns memory to Windows afterwards. Measured: 46–57 MB with 2.1M domains.
+- Uninstall's process cleanup would have killed the waiting, non-elevated `ab-win.exe`, which meant losing the "done" dialog. It now targets only tray processes.
+
+Still open:
+
+| Item | Severity (0–4) |
+|---|---|
+| SmartScreen warning on an unsigned exe (first-run trust) | 2: mitigated by the README walkthrough. Code signing is staged (PLAN 5.6). |
+| Generic exe icon in Explorer and the download bar | 1 |
+| The tray header only refreshes every 3 s after a CLI change | 0 |
+

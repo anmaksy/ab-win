@@ -1,6 +1,6 @@
 # ab-win — Plan
 
-**Status:** Planning. No code yet.
+**Status:** M1–M6 implemented (see section 13). M0 hardware spike and M7 beta still to do.
 **Date:** 2026-10-12
 **Goal:** A Windows background service that blocks ads, trackers and malware/phishing domains for the whole OS, so it works in every browser (Chrome, Edge, Firefox, Brave, Opera, Vivaldi…) and in every other app, with a tiny CLI and a tray icon to turn it on and off.
 
@@ -337,3 +337,26 @@ Strength presets: **Balanced** (default: HaGeZi Pro + TIF), **Relaxed** (HaGeZi 
 | Can non-admin users turn it off? | **Yes** | The default pipe ACL lets any interactive user toggle. `lock_settings` stays an opt-in for kids' PCs. |
 | Upstream DNS | **Cloudflare** (for speed); Quad9 acceptable | Default is `security.cloudflare-dns.com` (1.1.1.2, malware-blocking, same speed). Quad9 is the fallback. |
 | LAN mode (phones, TVs) | **No, skip** | The listener stays loopback-only for good. The smart-TV category is removed. Out of scope. |
+
+## 13. Implementation status (2026-10-12)
+
+| # | State | Notes |
+|---|---|---|
+| M0 | ⚠️ Decided on paper, spike not run | Adapter DNS (option 1) via `SetInterfaceDnsSettings`, with `netsh` as fallback, `NotifyIpInterfaceChange` plus a 60 s re-check. Adapters without a gateway (Hyper-V default switch, WSL) and VPN adapters are left alone. NRPT isn't implemented. Still to do: validate on Win10 22H2 and Win11 24H2/25H2 hardware with VPNs. |
+| M1 | ✅ | Resolver, policy, compiler, DoH upstream chain, cache. Unit, integration and fuzz tests pass. Measured with the real Balanced preset (2.1M domains): 0.28 µs per lookup, 46–57 MB RSS, cached and blocked answers < 1 ms p99, `lists.bin` loads at startup without network. |
+| M2 | ✅ code, ⚠️ service tests need admin | Service, install/uninstall, named-pipe IPC (two pipes, so `lock_settings` is enforced by the pipe ACL), every CLI command, watchdog failsafe. `tests/service-e2e.ps1` covers install → block → pause → crash recovery → watchdog → uninstall-restores-DNS. CI runs it on `windows-latest`; it hasn't been run on a developer machine yet (needs admin). |
+| M3 | ✅ | Updater with ETag, the 50 % / 300 % / sentinel / 50 MB guards, last-known-good, categories, presets. Every upstream URL was verified (all 11 return 200 and parse). Weekly `list-health` workflow. |
+| M4 | ✅ | Tray: four icon states (shape plus colour), pause menu, Recently blocked → Allow, install/repair, update available. |
+| M5 | ✅ partly | CNAME un-cloaking, `doctor`, `harden-browsers` (with undo), Firefox canary, DoH-blocked or captive networks fall back to the network's DNS, VPN detection. Not built: an explicit captive-portal detector (the fallback chain covers it) and the Playwright browser/breakage suites (section 8.1). |
+| M6 | ✅ | Release workflow (amd64 and arm64, `SHA256SUMS`, SBOM), double-click install, self-update with checksum check and rollback copy, `restore-dns.ps1`, README for friends. Not yet: an embedded exe icon and version resource; code signing (staged, section 5.6). |
+| M7 | ⏳ | Needs real machines and time. |
+
+Deviations from the plan as written:
+
+- **Rule precedence** is your allowlist > your blocklist > built-in allowlist > lists, so an explicit `ab-win block` beats a built-in allow.
+- **Policy store** is a sorted array of 64-bit domain hashes rather than a string trie. It costs about 10 bytes per domain and allocates nothing per lookup. The trade-off is that `why` reports the list and the matching rule, but the compiled snapshot can't list its domains back.
+- **Local names** (`*.lan`, `*.home.arpa`, `fritz.box`, single-label names, private reverse zones and the DHCP search domain) go to the network's own DNS, unfiltered. Otherwise LAN devices would stop resolving.
+- **Service stop and shutdown** restore the original DNS, and the service takes DNS over again on start. A crash leaves loopback in place for the 5 s recovery window. After the watchdog has had to restore DNS, the service waits until it has been stable for 2 minutes before taking DNS back, so a crash loop can't flap the network.
+- **Affiliate and gambling/adult categories** aren't shipped: there was no maintained DNS list worth defaulting to. The Ads category says it "includes most trackers" because HaGeZi Pro covers both.
+- Added **`ab-win lock on|off`** after the built-app usability review (T9).
+

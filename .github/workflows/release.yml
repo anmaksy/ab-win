@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test
+        run: |
+          go vet ./...
+          go test ./...
+      - name: Build
+        shell: pwsh
+        run: |
+          $ver = '${{ github.ref_name }}'
+          $flags = "-s -w -X github.com/anmaksy/ab-win/internal/version.Version=$ver -X github.com/anmaksy/ab-win/internal/version.Repo=${{ github.repository }}"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $env:GOARCH = 'amd64'; go build -trimpath -ldflags $flags -o dist/ab-win.exe ./cmd/ab-win
+          $env:GOARCH = 'arm64'; go build -trimpath -ldflags $flags -o dist/ab-win-arm64.exe ./cmd/ab-win
+          Copy-Item scripts/restore-dns.ps1 dist/
+      - name: Service end-to-end on the release binary
+        shell: powershell
+        run: .\tests\service-e2e.ps1 -Exe .\dist\ab-win.exe
+      - name: SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: dist/ab-win.spdx.json
+          upload-artifact: false
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Set-Location dist
+          Get-ChildItem -File | Where-Object Name -ne 'SHA256SUMS' | ForEach-Object {
+            "$((Get-FileHash $_.Name -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          } | Set-Content -NoNewline:$false -Encoding ascii SHA256SUMS
+          Get-Content SHA256SUMS
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = @"
+          **Install:** download **ab-win.exe** below, double-click it and click **Install**. (ARM PC? Use ab-win-arm64.exe.)
+
+          Windows may say "Windows protected your PC" because the file isn't code-signed yet: click **More info → Run anyway**. You can check the download against SHA256SUMS.
+
+          Internet stopped working? Run **restore-dns.ps1** (right-click → Run with PowerShell).
+          "@
+          gh release create '${{ github.ref_name }}' dist/* --title '${{ github.ref_name }}' --notes $notes
