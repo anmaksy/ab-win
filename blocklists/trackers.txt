@@ -1,4 +1,4 @@
-# adblock-win built-in seed list: TRACKERS & ANALYTICS
+# ab-win built-in seed list: TRACKERS & ANALYTICS
 # One domain per line. Each entry also blocks all its subdomains.
 # Blocking analytics may break the vendor's own dashboard for people who use it. They can allow it from the tray.
 #

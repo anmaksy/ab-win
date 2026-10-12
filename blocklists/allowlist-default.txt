@@ -1,4 +1,4 @@
-# adblock-win built-in ALLOWLIST: never blocked, whatever any upstream list says.
+# ab-win built-in ALLOWLIST: never blocked, whatever any upstream list says.
 # One domain per line. Each entry also allows all its subdomains, unless prefixed with "=" (exact match).
 # The list updater REJECTS an upstream update that contains any of the "=" sentinels below (poisoned or broken list guard).
 

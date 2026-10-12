@@ -1,4 +1,4 @@
-# adblock-win — Plan
+# ab-win — Plan
 
 **Status:** Planning. No code yet.
 **Date:** 2026-10-12
@@ -49,13 +49,13 @@ There are two ways to make Windows use `127.0.0.1`. **Milestone M0 is a spike th
 
 ### 2.2 Language and stack
 
-**Go**, as a single static `adblock.exe` with no runtime to install:
+**Go**, as a single static `ab-win.exe` with no runtime to install:
 - `golang.org/x/sys/windows/svc`: Windows service.
 - `github.com/miekg/dns`: DNS server and client (battle-tested; used by CoreDNS).
 - DoH/DoT upstream: standard library `net/http` plus HTTP/2.
 - Tray: `fyne.io/systray` (or `getlantern/systray`).
-- IPC: a named pipe (`\\.\pipe\adblock-win`) via `github.com/Microsoft/go-winio`, with an explicit ACL.
-- Config: TOML in `C:\ProgramData\adblock-win\config.toml`.
+- IPC: a named pipe (`\\.\pipe\ab-win`) via `github.com/Microsoft/go-winio`, with an explicit ACL.
+- Config: TOML in `C:\ProgramData\ab-win\config.toml`.
 
 Considered alternative: **.NET 8 + WinUI/WinForms**. It gives a nicer native UI, but the service must start very early at boot and stay small, and Go's single binary and simple cross-compilation fit better. The UI can be rewritten later without touching the core.
 
@@ -63,7 +63,7 @@ Considered alternative: **.NET 8 + WinUI/WinForms**. It gives a nicer native UI,
 
 ```
                          ┌──────────────────────────────────────────────┐
-  Browsers / apps        │  adblock.exe  (Windows service, LocalSystem) │
+  Browsers / apps        │  ab-win.exe  (Windows service, LocalSystem) │
   ─────────────────▶ DNS │                                              │
   Windows DNS Client ───▶│  DNS listener 127.0.0.1:53, [::1]:53 (UDP/TCP)│
   (Dnscache)             │      │                                       │
@@ -82,11 +82,11 @@ Considered alternative: **.NET 8 + WinUI/WinForms**. It gives a nicer native UI,
                          │  List updater (every 24h, ETag, atomic swap) │
                          │  Network watcher (re-apply DNS redirection)  │
                          │  Stats + ring-buffer query log (in memory)   │
-                         │  IPC server  \\.\pipe\adblock-win            │
+                         │  IPC server  \\.\pipe\ab-win            │
                          └───────────────▲──────────────────────────────┘
                                          │ JSON-RPC over named pipe
                     ┌────────────────────┴───────────────────┐
-                    │ adblock.exe (CLI)   adblock.exe tray   │
+                    │ ab-win.exe (CLI)   ab-win.exe tray   │
                     └────────────────────────────────────────┘
 ```
 
@@ -109,7 +109,7 @@ Considered alternative: **.NET 8 + WinUI/WinForms**. It gives a nicer native UI,
 
 - `A` → `0.0.0.0`, `AAAA` → `::`, TTL 60 s. This fails instantly; NXDOMAIN makes some apps retry, and a fake IP makes browsers hang.
 - `HTTPS`/`SVCB` (type 65/64) → empty NOERROR. This matters: Chrome and Firefox query HTTPS records, and an answer could leak ECH or alt-svc hints.
-- A response flag in the stats records which list blocked the name, so `adblock why <domain>` works.
+- A response flag in the stats records which list blocked the name, so `ab-win why <domain>` works.
 
 ### 3.3 CNAME un-cloaking
 
@@ -118,43 +118,43 @@ Trackers hide behind first-party subdomains (`metrics.shop.com CNAME shop.euleri
 ### 3.4 Files on disk
 
 ```
-C:\Program Files\adblock-win\adblock.exe
-C:\ProgramData\adblock-win\
+C:\Program Files\ab-win\ab-win.exe
+C:\ProgramData\ab-win\
     config.toml          # settings (ACL: Admins write, Users read)
     allow.txt            # user allowlist, one domain per line
     block.txt            # user blocklist
     lists\*.txt          # raw downloaded lists (cache)
     lists.bin            # compiled snapshot
     state.json           # saved original DNS settings per adapter (for restore)
-    logs\adblock.log     # service log, rotated, 5 × 5 MB
+    logs\ab-win.log     # service log, rotated, 5 × 5 MB
 ```
 
 ## 4. User interface
 
-### 4.1 CLI (`adblock`)
+### 4.1 CLI (`ab-win`)
 
-The design rule: the 3 most common tasks are single, obvious words. Everything else is discoverable with `adblock help`.
+The design rule: the 3 most common tasks are single, obvious words. Everything else is discoverable with `ab-win help`.
 
 ```
-adblock status                 # On/Off/Paused, blocked today, lists age, DNS routing OK?
-adblock on                     # enable protection
-adblock off                    # disable (asks "pause instead?" hint once)
-adblock pause [15m|1h|reboot]  # temporary off, auto-resumes (default 15m)
+ab-win status                  # On/Off/Paused, blocked today, lists age, DNS routing OK?
+ab-win on                      # enable protection
+ab-win off                     # disable (asks "pause instead?" hint once)
+ab-win pause [15m|1h|reboot]   # temporary off, auto-resumes (default 15m)
 
-adblock allow <domain>         # never block this domain (and subdomains)
-adblock block <domain>         # always block
-adblock unallow / unblock <domain>
-adblock why <domain>           # "blocked by: HaGeZi Pro (ads)" or "allowed"
-adblock recent [--blocked] [-f]# last queries, live follow with -f
+ab-win allow <domain>          # never block this domain (and subdomains)
+ab-win block <domain>          # always block
+ab-win unallow / unblock <domain>
+ab-win why <domain>            # "blocked by: HaGeZi Pro (ads)" or "allowed"
+ab-win recent [--blocked] [-f]# last queries, live follow with -f
 
-adblock lists                  # show lists, enabled state, size, last update
-adblock lists enable|disable <name>
-adblock update                 # refresh lists now
+ab-win lists                   # show lists, enabled state, size, last update
+ab-win lists enable|disable <name>
+ab-win update                  # refresh lists now
 
-adblock install                # install + start service, autostart on boot (elevates via UAC)
-adblock uninstall              # stop, restore original DNS, remove service
-adblock doctor                 # diagnose: port 53 conflict, DoH bypass, VPN, adapters, upstream reachability
-adblock harden-browsers [--undo]  # opt-in: set DoH-off policies for Chrome/Edge/Brave/Firefox
+ab-win install                 # install + start service, autostart on boot (elevates via UAC)
+ab-win uninstall               # stop, restore original DNS, remove service
+ab-win doctor                  # diagnose: port 53 conflict, DoH bypass, VPN, adapters, upstream reachability
+ab-win harden-browsers [--undo]   # opt-in: set DoH-off policies for Chrome/Edge/Brave/Firefox
 ```
 
 Conventions:
@@ -164,10 +164,10 @@ Conventions:
 - Commands that need admin (`install`, `uninstall`, `harden-browsers`) re-launch themselves elevated through UAC instead of failing with "access denied".
 - `NO_COLOR` is respected, and no emoji appear when stdout isn't a TTY.
 
-### 4.2 Tray app (`adblock tray`, auto-starts at user logon)
+### 4.2 Tray app (`ab-win tray`, auto-starts at user logon)
 
 ```
- [🛡 green]  adblock-win — Protected
+ [🛡 green]  ab-win — Protected
  ─────────────────────────────────
  ● Protection on            (click toggles)
    Pause  ▸  5 minutes / 1 hour / Until restart
@@ -193,14 +193,14 @@ A small HTML page served on `http://127.0.0.1:5380`, protected by a random token
 
 ### 5.1 Install
 
-- `adblock install` (or double-clicking `adblock.exe`, see section 5.6) does the following:
+- `ab-win install` (or double-clicking `ab-win.exe`, see section 5.6) does the following:
   1. Copies the binary to `Program Files`.
-  2. Registers the service `adblock-win` with start type **Automatic** (not Delayed: DNS is needed early), runs it as LocalSystem, and sets recovery to *restart after 5 s, 10 s, 30 s*.
+  2. Registers the service `ab-win` with start type **Automatic** (not Delayed: DNS is needed early), runs it as LocalSystem, and sets recovery to *restart after 5 s, 10 s, 30 s*.
   3. Saves the current DNS settings per adapter to `state.json`.
   4. Starts the service.
   5. Points DNS at loopback.
   6. Registers the tray to run at logon for **all users** (HKLM `Run` key), because a friend's PC may have several accounts.
-  7. Registers an uninstall entry under "Installed apps" that runs `adblock uninstall`.
+  7. Registers an uninstall entry under "Installed apps" that runs `ab-win uninstall`.
 - Before taking port 53, check whether something else holds it: ICS/`SharedAccess`, Hyper-V's default switch DNS proxy, Docker Desktop, another DNS filter (AdGuard, Simple DNSCrypt, Acrylic). If so, explain clearly and stop. Don't fight over the port.
 - Distribution: see section 5.6.
 
@@ -218,7 +218,7 @@ The service starts before user logon. Until the compiled `lists.bin` is loaded (
 If the service crashes, or Windows stops it, DNS on loopback would mean **no internet at all**. The service handles this in several layers:
 - Service recovery restarts it within 5 s.
 - After 3 crashes within 10 minutes, a watchdog (a scheduled task, or the tray process) restores the original DNS from `state.json` and shows the tray in the red "problem" state.
-- `adblock uninstall` restores DNS even if the service is already gone.
+- `ab-win uninstall` restores DNS even if the service is already gone.
 - The installer ships a standalone `restore-dns.ps1` as a last-resort recovery script, documented in the README.
 
 ### 5.5 Sleep, resume, network change, VPN
@@ -233,13 +233,13 @@ If the service crashes, or Windows stops it, DNS on loopback would mean **no int
 
 Decision: the repo is shared so friends can install it themselves. The target is that a non-technical friend installs it from the GitHub Releases page in under a minute.
 
-- **Release pipeline:** pushing a `v*` tag runs GitHub Actions. It builds `adblock.exe` (amd64 and arm64), runs the full test suite and attaches the binaries plus `SHA256SUMS` to a GitHub Release.
-- **One file, double-click install:** running `adblock.exe` with no arguments when the service isn't installed shows "Install adblock-win? It blocks ads and malware for all apps." Clicking **Install** brings up the UAC prompt; protection then turns on and the tray icon appears. No terminal is needed. The CLI stays available for power users.
-- **App updates:** the service checks the GitHub Releases API once a day. This and the list downloads are its only outbound calls. When a new version exists, the tray shows "Update available". Clicking it downloads the new binary, verifies the SHA-256 (and the signature, once releases are signed), and swaps it in place, keeping the old binary for rollback. `adblock self-update` does the same from the CLI.
+- **Release pipeline:** pushing a `v*` tag runs GitHub Actions. It builds `ab-win.exe` (amd64 and arm64), runs the full test suite and attaches the binaries plus `SHA256SUMS` to a GitHub Release.
+- **One file, double-click install:** running `ab-win.exe` with no arguments when the service isn't installed shows "Install ab-win? It blocks ads and malware for all apps." Clicking **Install** brings up the UAC prompt; protection then turns on and the tray icon appears. No terminal is needed. The CLI stays available for power users.
+- **App updates:** the service checks the GitHub Releases API once a day. This and the list downloads are its only outbound calls. When a new version exists, the tray shows "Update available". Clicking it downloads the new binary, verifies the SHA-256 (and the signature, once releases are signed), and swaps it in place, keeping the old binary for rollback. `ab-win self-update` does the same from the CLI.
 - **SmartScreen:** an unsigned exe downloaded from GitHub shows "Windows protected your PC". The plan is staged:
   1. **Start unsigned.** The README shows a screenshot of "More info → Run anyway", and `SHA256SUMS` lets careful friends verify the download. That's acceptable for a circle of friends.
   2. **If it spreads further,** sign releases in CI with Azure Trusted Signing (low monthly cost; check individual-developer eligibility at that time) or an OV certificate.
-- **Later and optional:** a winget manifest (`winget install adblock-win`) and an MSI. Neither is needed for friends.
+- **Later and optional:** a winget manifest (`winget install ab-win`) and an MSI. Neither is needed for friends.
 - **Licence:** MIT for our code and seed lists. Upstream lists (GPL-3.0, CC BY-NC and others) are **downloaded at runtime, never committed or bundled**, so their licences don't constrain the repo. The About dialog credits them.
 - **README for friends:** the first screen covers install in three steps, then "A site is broken?" (tray → Recently blocked → Allow), then "No internet?" (`restore-dns.ps1`).
 
@@ -283,14 +283,14 @@ Strength presets: **Balanced** (default: HaGeZi Pro + TIF), **Relaxed** (HaGeZi 
 | Integration | Real DNS server on a random port: A/AAAA/HTTPS/CNAME/TCP fallback/truncation, upstream timeout → fallback, cache TTL, stale serving | `go test` with a fake upstream |
 | Service | install → start → query → pause → auto-resume → uninstall restores DNS exactly (DHCP vs static, IPv4 and IPv6) | GitHub Actions `windows-latest` (admin available) plus a Windows 10 22H2 VM |
 | Failsafe | Kill the service process; machine still resolves within N s after watchdog. Corrupt `lists.bin` → rebuilt. Poisoned list update rejected. | Scripted chaos tests |
-| Browser E2E | Chrome, Edge, Firefox, Brave: load a test page that references known ad/tracker domains plus our own test domain `blocked.adblock-win.test`. Assert the requests fail and the page loads. Repeat with Firefox TRR enabled to verify the canary. | Playwright (Chromium, Edge channel, Firefox) |
+| Browser E2E | Chrome, Edge, Firefox, Brave: load a test page that references known ad/tracker domains plus our own test domain `blocked.ab-win.test`. Assert the requests fail and the page loads. Repeat with Firefox TRR enabled to verify the canary. | Playwright (Chromium, Edge channel, Firefox) |
 | Breakage | Top 200 sites (login, checkout, video) load with no console errors caused by DNS blocks. Diff against protection-off. | Nightly Playwright job; failures produce allowlist candidates |
 | Performance | p50/p99 query latency (cached < 1 ms, uncached ≈ upstream + 2 ms), memory with 1.5M domains (< 80 MB), startup < 300 ms, CPU idle ≈ 0 | `go test -bench`, `dnsperf`-style load |
 | List health | Every upstream URL still returns 200, parses, and its size is within expected bounds | Weekly CI job; opens an issue when a list dies |
 
 ### 8.2 Manual release checklist
 
-- Fresh Windows 11 VM: download `adblock.exe` from the GitHub Release, double-click it, get past SmartScreen following only the README, and install. Repeat on a non-admin account, where toggle, pause and allow must also work.
+- Fresh Windows 11 VM: download `ab-win.exe` from the GitHub Release, double-click it, get past SmartScreen following only the README, and install. Repeat on a non-admin account, where toggle, pause and allow must also work.
 - Wi-Fi ↔ Ethernet switch, sleep/resume, captive portal (simulated), common VPN (WireGuard, OpenVPN), Docker Desktop installed, Hyper-V enabled.
 - Uninstall leaves no service, no NRPT rule, the original DNS and no leftover tray `Run` key.
 
@@ -309,7 +309,7 @@ Strength presets: **Balanced** (default: HaGeZi Pro + TIF), **Relaxed** (HaGeZi 
 | # | Milestone | Deliverable | Exit criteria |
 |---|---|---|---|
 | M0 | **Spike** (2–3 days) | Prototype: loopback DNS plus adapter-DNS versus NRPT routing, on Win10 and Win11 | Choose a routing method. Confirm the browser canary behaviour. List the port-53 conflicts we found. |
-| M1 | Core resolver | `dnsserver`, `policy`, `compiler`, `upstream`, `cache` + unit and integration tests | Blocks the seed lists in a foreground console run (`adblock run`) |
+| M1 | Core resolver | `dnsserver`, `policy`, `compiler`, `upstream`, `cache` + unit and integration tests | Blocks the seed lists in a foreground console run (`ab-win run`) |
 | M2 | Service + CLI | Service install/uninstall, IPC, all CLI commands except `harden-browsers`, failsafe | Service tests green. Uninstall restores DNS. |
 | M3 | Lists | Updater, categories, presets, list-health CI | Balanced preset passes the breakage suite |
 | M4 | Tray | Tray app, icon states, recently blocked → allow, pause menu | Usability walkthrough tasks done in < 30 s (see USABILITY-REVIEW.md) |

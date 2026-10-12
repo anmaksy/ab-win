@@ -1,4 +1,4 @@
-# adblock-win built-in seed list: WINDOWS / MICROSOFT TELEMETRY (category OFF by default)
+# ab-win built-in seed list: WINDOWS / MICROSOFT TELEMETRY (category OFF by default)
 # One domain per line. Each entry also blocks all its subdomains.
 # WARNING: may break Windows Update, Microsoft Store, Defender cloud protection, Office activation
 # or Xbox features. Upstream extended list: crazy-max/WindowsSpyBlocker (data/hosts/spy.txt).
